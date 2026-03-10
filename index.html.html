@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AnimeDex</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root { --card-w:150px; --card-h:220px; }
+
+body { background:#07071a; color:#e8e8f8; font-family:'Rajdhani',sans-serif; min-height:100vh; }
+
+.header { text-align:center; padding:28px 16px 16px; }
+.logo {
+  font-family:'Cinzel',serif; font-size:clamp(1.8rem,7vw,2.6rem); font-weight:900; letter-spacing:6px;
+  background:linear-gradient(135deg,#ff8800,#ffdd00,#ff4488,#aa44ff);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.logo-sub { font-size:.6rem; letter-spacing:5px; color:#3a3a6a; text-transform:uppercase; margin-top:2px; }
+
+#screen-main { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh; gap:28px; padding:20px; }
+.pack-box {
+  width:170px; height:240px; border-radius:18px;
+  background:linear-gradient(145deg,#0d0030,#2a0060,#500015);
+  border:2px solid rgba(180,80,255,.45);
+  box-shadow:0 0 50px rgba(160,40,255,.3),0 0 100px rgba(160,40,255,.1);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  cursor:pointer; animation:float 3s ease-in-out infinite;
+}
+.pack-box:active { transform:scale(.95); }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.pack-icon { font-size:3.5rem; }
+.pack-label { font-family:'Cinzel',serif; font-size:.75rem; letter-spacing:3px; color:rgba(220,180,255,.7); text-align:center; }
+.btn-open {
+  background:linear-gradient(135deg,#ff6600,#ffcc00); color:#000; border:none; border-radius:14px;
+  padding:15px 50px; font-family:'Cinzel',serif; font-size:1rem; font-weight:700; letter-spacing:3px;
+  cursor:pointer; box-shadow:0 4px 30px rgba(255,140,0,.5);
+}
+
+#screen-opening { display:none; flex-direction:column; align-items:center; padding:16px 10px 60px; gap:16px; }
+#screen-opening.visible { display:flex; }
+.open-toolbar { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:520px; padding:0 4px; }
+.open-info { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:3px; color:#3a3a6a; }
+.btn-reveal {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.4);
+  border-radius:8px; padding:7px 16px; font-family:'Rajdhani',sans-serif; font-size:.7rem;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+}
+.btn-again { display:none; margin-top:8px; background:linear-gradient(135deg,#ff6600,#ffcc00); color:#000; border:none; border-radius:12px; padding:13px 40px; font-family:'Cinzel',serif; font-size:.9rem; font-weight:700; letter-spacing:2px; cursor:pointer; }
+.btn-again.visible { display:block; }
+
+.card-grid { display:grid; grid-template-columns:repeat(3,var(--card-w)); gap:10px; }
+
+/* ─── CARD ─── */
+.card {
+  width:var(--card-w); height:var(--card-h);
+  position:relative; cursor:pointer; border-radius:12px;
+  animation:cardIn .35s ease both;
+}
+.card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.10s}
+.card:nth-child(3){animation-delay:.15s}.card:nth-child(4){animation-delay:.20s}
+.card:nth-child(5){animation-delay:.25s}.card:nth-child(6){animation-delay:.30s}
+.card:nth-child(7){animation-delay:.35s}.card:nth-child(8){animation-delay:.40s}
+.card:nth-child(9){animation-delay:.45s}
+@keyframes cardIn { from{opacity:0;transform:translateY(14px) scale(.93)} to{opacity:1;transform:none} }
+
+@keyframes squeeze { 0%{transform:scaleX(1)} 45%{transform:scaleX(0)} 55%{transform:scaleX(0)} 100%{transform:scaleX(1)} }
+.card.flipping { animation:squeeze .45s ease forwards; }
+
+/* Les deux faces superposées, contrôlées par opacity */
+.card-back,
+.card-front {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  border-radius:12px; overflow:hidden;
+  transition:opacity .1s;
+}
+.card-back  { opacity:1; pointer-events:auto;  z-index:2; }
+.card-front { opacity:0; pointer-events:none;  z-index:1; }
+.card.flipped .card-back  { opacity:0; pointer-events:none;  z-index:1; }
+.card.flipped .card-front { opacity:1; pointer-events:auto;  z-index:2; }
+
+/* BACK */
+.card-back {
+  background:linear-gradient(145deg,#0a001e,#04000e);
+  border:1.5px solid rgba(100,50,200,.3);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+}
+.cb-logo { font-family:'Cinzel',serif; font-size:.55rem; letter-spacing:3px; color:rgba(180,100,255,.5); }
+.cb-gem  { font-size:2.2rem; filter:drop-shadow(0 0 14px rgba(180,80,255,.7)); }
+
+/* FRONT */
+.card-front {
+  display:flex; flex-direction:column;
+  border:1.5px solid rgba(100,100,180,.3);
+  background:#0c0c1e;
+}
+.card-front.r-common    { border-color:rgba(136,153,187,.4); }
+.card-front.r-rare      { border-color:rgba(51,153,255,.7);  box-shadow:0 0 12px rgba(51,153,255,.25); }
+.card-front.r-epic      { border-color:rgba(204,68,255,.85); box-shadow:0 0 16px rgba(204,68,255,.3); }
+.card-front.r-legendary { border-color:rgba(255,170,0,.9);   box-shadow:0 0 20px rgba(255,170,0,.35); }
+.card-front.r-mythic    { border-color:rgba(255,34,102,.95); box-shadow:0 0 24px rgba(255,34,102,.4); }
+
+/* ART — hauteur fixe absolue */
+.card-art {
+  width:100%;
+  height:152px;
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+  background:#111;
+}
+/* L'image réelle (Wikipedia) */
+.card-art .art-img {
+  display:block;
+  width:100%; height:100%;
+  object-fit:cover;
+  object-position:center top;
+}
+/* Fallback SVG affiché si l'image réseau échoue */
+.card-art .art-fallback {
+  display:none;
+  width:100%; height:100%;
+}
+.card-art .art-img.broken { display:none; }
+.card-art .art-img.broken + .art-fallback { display:block; }
+
+/* Badge */
+.badge {
+  font-family:'Rajdhani',sans-serif; font-size:.42rem; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase;
+  padding:2px 6px; border-radius:3px;
+  display:inline-block; margin:4px 0 0 6px; align-self:flex-start; flex-shrink:0;
+}
+.badge.r-common    { background:rgba(136,153,187,.2); color:#8899bb; border:1px solid rgba(136,153,187,.3); }
+.badge.r-rare      { background:rgba(51,153,255,.2);  color:#3399ff; border:1px solid rgba(51,153,255,.4); }
+.badge.r-epic      { background:rgba(204,68,255,.2);  color:#cc44ff; border:1px solid rgba(204,68,255,.4); }
+.badge.r-legendary { background:rgba(255,170,0,.2);   color:#ffaa00; border:1px solid rgba(255,170,0,.5); animation:pulse 1.8s infinite; }
+.badge.r-mythic    { background:rgba(255,34,102,.2);  color:#ff2266; border:1px solid rgba(255,34,102,.5); animation:pulse .9s infinite; }
+@keyframes pulse { 0%,100%{opacity:.8} 50%{opacity:1;box-shadow:0 0 8px currentColor} }
+
+/* Info */
+.card-info { flex:1; padding:4px 8px 7px; display:flex; flex-direction:column; gap:2px; min-height:0; }
+.card-name { font-family:'Cinzel',serif; font-size:.54rem; font-weight:700; color:#dde; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-name.r-legendary { color:#ffcc44; }
+.card-name.r-mythic    { color:#ff6699; }
+.card-form   { font-size:.48rem; letter-spacing:1px; color:#3a3a6a; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-series { margin-top:auto; font-size:.4rem; letter-spacing:2px; color:#1e1e44; text-transform:uppercase; border-top:1px solid rgba(255,255,255,.04); padding-top:3px; }
+
+@media(max-width:500px){
+  :root{--card-w:104px;--card-h:156px;}
+  .card-art{height:100px;}
+  .card-grid{gap:7px;}
+}
+@media(max-width:360px){
+  :root{--card-w:90px;--card-h:138px;}
+  .card-art{height:86px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">ANIMEDEX</div>
+  <div class="logo-sub">Card Collection</div>
+</div>
+
+<div id="screen-main">
+  <div class="pack-box" onclick="openPack()">
+    <div class="pack-icon">✦</div>
+    <div class="pack-label">ANIME<br>PACK</div>
+  </div>
+  <button class="btn-open" onclick="openPack()">OUVRIR UN PACK</button>
+</div>
+
+<div id="screen-opening">
+  <div class="open-toolbar">
+    <div class="open-info">PACK · 9 CARTES</div>
+    <button class="btn-reveal" onclick="revealAll()">Tout révéler</button>
+  </div>
+  <div class="card-grid" id="cardGrid"></div>
+  <button class="btn-again" id="btnAgain" onclick="openPack()">OUVRIR UN AUTRE PACK</button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   BASE DE CARTES
+   image = URL Wikipedia (vraie illustration)
+   fallback = initiales SVG si image échoue
+══════════════════════════════════════════ */
+const CARDS = [
+  // ── NARUTO ──
+  {
+    name:"Naruto Uzumaki", form:"Genin", rarity:"common", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Naruto Uzumaki", form:"Mode Ermite", rarity:"epic", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Naruto Uzumaki", form:"Kurama Mode", rarity:"legendary", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Sasuke Uchiha", form:"Genin", rarity:"common", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/2/21/Naruto_Volume_43.jpg"
+  },
+  {
+    name:"Sasuke Uchiha", form:"Sharingan Mangekyou", rarity:"rare", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/2/21/Naruto_Volume_43.jpg"
+  },
+  {
+    name:"Sasuke Uchiha", form:"Susanoo Complet", rarity:"epic", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/2/21/Naruto_Volume_43.jpg"
+  },
+  {
+    name:"Sakura Haruno", form:"Chunin", rarity:"common", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Kakashi Hatake", form:"Chidori", rarity:"rare", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Itachi Uchiha", form:"Susanoo Divin", rarity:"legendary", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/2/21/Naruto_Volume_43.jpg"
+  },
+  {
+    name:"Minato Namikaze", form:"Eclair Jaune", rarity:"rare", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Gaara", form:"Sable Defensif", rarity:"common", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/94/NarutoCoverTankobon1.jpg"
+  },
+  {
+    name:"Madara Uchiha", form:"Rinnegan", rarity:"mythic", series:"Naruto",
+    image:"https://upload.wikimedia.org/wikipedia/en/2/21/Naruto_Volume_43.jpg"
+  },
+  // ── ONE PIECE ──
+  {
+    name:"Monkey D. Luffy", form:"Gear 4th Boundman", rarity:"rare", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Monkey D. Luffy", form:"Gear 5th Nika", rarity:"mythic", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Roronoa Zoro", form:"Santoryu", rarity:"common", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Roronoa Zoro", form:"Ashura Dix Epees", rarity:"epic", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Nami", form:"Navigatrice", rarity:"common", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Sanji", form:"Ifrit Jambe", rarity:"rare", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Portgas D. Ace", form:"Hiken Lance de Feu", rarity:"epic", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Shanks", form:"Yonko", rarity:"legendary", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Trafalgar Law", form:"Op Op Fruit", rarity:"rare", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  {
+    name:"Nico Robin", form:"Mil Fleur", rarity:"common", series:"One Piece",
+    image:"https://upload.wikimedia.org/wikipedia/en/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg"
+  },
+  // ── DRAGON BALL ──
+  {
+    name:"Son Goku", form:"Super Saiyan Namek", rarity:"legendary", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Son Goku", form:"Ultra Instinct Parfait", rarity:"mythic", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Vegeta", form:"Super Saiyan Blue", rarity:"rare", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Vegeta", form:"Ultra Ego", rarity:"epic", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Gohan", form:"Gohan Beast", rarity:"legendary", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Piccolo", form:"Manteau de Dieu", rarity:"common", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Freezer", form:"Forme Finale", rarity:"rare", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+  {
+    name:"Broly", form:"Super Saiyan Legendaire", rarity:"epic", series:"Dragon Ball",
+    image:"https://upload.wikimedia.org/wikipedia/en/a/a7/Dragon_ball_gt_-_a_hero%27s_legacy.jpg"
+  },
+];
+
+/* ══════════════════════════════════════════
+   FALLBACK SVG (si l'image réseau échoue)
+══════════════════════════════════════════ */
+const PAL = {
+  "Naruto Uzumaki": ["#3d1200","#c04000","#ff8800"],
+  "Sasuke Uchiha":  ["#0a001a","#380070","#9944ff"],
+  "Sakura Haruno":  ["#280018","#880044","#ff66aa"],
+  "Kakashi Hatake": ["#0d0d22","#28285a","#9999ff"],
+  "Itachi Uchiha":  ["#06000e","#300055","#8833cc"],
+  "Minato Namikaze":["#00012a","#00036e","#3377ff"],
+  "Gaara":          ["#1a0c00","#664400","#cc8833"],
+  "Madara Uchiha":  ["#0e0002","#440011","#dd2244"],
+  "Monkey D. Luffy":["#440000","#bb1100","#ff5544"],
+  "Roronoa Zoro":   ["#001800","#005000","#44cc44"],
+  "Nami":           ["#332200","#aa6600","#ffcc33"],
+  "Sanji":          ["#00001e","#000066","#4477ff"],
+  "Portgas D. Ace": ["#441000","#bb2200","#ff6600"],
+  "Shanks":         ["#2a0000","#770000","#ff3333"],
+  "Trafalgar Law":  ["#001118","#004466","#22aacc"],
+  "Nico Robin":     ["#100020","#330077","#8855ff"],
+  "Son Goku":       ["#221000","#774400","#ffbb00"],
+  "Vegeta":         ["#06001a","#220066","#7755ff"],
+  "Gohan":          ["#1a0800","#663300","#ff8833"],
+  "Piccolo":        ["#001200","#003c00","#33bb33"],
+  "Freezer":        ["#14001a","#440055","#ee55ee"],
+  "Broly":          ["#001400","#005200","#33ff77"],
+};
+
+function makeFallbackSVG(name, rarity) {
+  const p = PAL[name] || ["#0e0e2a","#222255","#7777bb"];
+  const parts = name.trim().split(/\s+/);
+  const ini = (parts.length>=2 ? parts[0][0]+parts[parts.length-1][0] : name.slice(0,2)).toUpperCase();
+  const ac = {common:"#8899bb",rare:"#3399ff",epic:"#cc44ff",legendary:"#ffaa00",mythic:"#ff2266"}[rarity]||"#888";
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 152" width="150" height="152">` +
+    `<defs>` +
+    `<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${p[0]}"/><stop offset="100%" stop-color="${p[1]}"/></linearGradient>` +
+    `<radialGradient id="r" cx="50%" cy="44%" r="50%"><stop offset="0%" stop-color="${p[2]}" stop-opacity=".28"/><stop offset="100%" stop-color="${p[2]}" stop-opacity="0"/></radialGradient>` +
+    `</defs>` +
+    `<rect width="150" height="152" fill="url(#g)"/>` +
+    `<rect width="150" height="152" fill="url(#r)"/>` +
+    `<circle cx="75" cy="70" r="44" fill="none" stroke="${p[2]}" stroke-opacity=".18" stroke-width="1.5"/>` +
+    `<text x="75" y="80" font-family="Georgia,serif" font-size="46" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="white" fill-opacity=".9">${ini}</text>` +
+    `<rect x="0" y="0" width="150" height="3" fill="${ac}" fill-opacity=".8"/>` +
+    `</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+/* ══════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════ */
+const LABELS = {common:"Common",rare:"Rare",epic:"Épique",legendary:"Légendaire",mythic:"Mythique"};
+
+function renderCard(card, i) {
+  const r      = card.rarity;
+  const lbl    = LABELS[r] || r;
+  const fbSrc  = makeFallbackSVG(card.name, r);
+
+  return `<div class="card" id="c${i}" onclick="flip(${i})">
+
+  <div class="card-back">
+    <div class="cb-logo">ANIMEDEX</div>
+    <div class="cb-gem">✦</div>
+  </div>
+
+  <div class="card-front r-${r}">
+    <div class="card-art">
+      <img class="art-img"
+           src="${card.image}"
+           alt="${card.name}"
+           onerror="this.classList.add('broken')">
+      <img class="art-fallback"
+           src="${fbSrc}"
+           alt="${card.name}">
+    </div>
+    <div class="badge r-${r}">${lbl}</div>
+    <div class="card-info">
+      <div class="card-name r-${r}">${card.name}</div>
+      <div class="card-form">${card.form}</div>
+      <div class="card-series">${card.series}</div>
+    </div>
+  </div>
+
+</div>`;
+}
+
+/* ══════════════════════════════════════════
+   PACK GENERATION
+══════════════════════════════════════════ */
+const W = {common:60,rare:25,epic:10,legendary:4,mythic:1};
+
+function pickRarity() {
+  let r=Math.random()*100, c=0;
+  for(const[k,w] of Object.entries(W)){ c+=w; if(r<c) return k; }
+  return 'common';
+}
+
+function generatePack() {
+  const byR = {};
+  for(const k in W) byR[k] = CARDS.filter(c => c.rarity === k);
+  const pack = []; let hasGood = false;
+  for(let i=0; i<9; i++){
+    let r = pickRarity();
+    if(i===8 && !hasGood) r = 'rare';
+    if(r !== 'common') hasGood = true;
+    const pool = byR[r].length ? byR[r] : CARDS;
+    pack.push({...pool[Math.floor(Math.random()*pool.length)], rarity:r});
+  }
+  const ord = {common:0,rare:1,epic:2,legendary:3,mythic:4};
+  pack.sort((a,b) => ord[a.rarity]-ord[b.rarity]);
+  return pack;
+}
+
+/* ══════════════════════════════════════════
+   GAME
+══════════════════════════════════════════ */
+let pack=[], revealed=0;
+
+function openPack() {
+  pack = generatePack(); revealed = 0;
+  document.getElementById('cardGrid').innerHTML = pack.map((c,i)=>renderCard(c,i)).join('');
+  document.getElementById('btnAgain').classList.remove('visible');
+  document.getElementById('screen-main').style.display = 'none';
+  document.getElementById('screen-opening').classList.add('visible');
+}
+
+function flip(i) {
+  const el = document.getElementById('c'+i);
+  if(!el || el.classList.contains('flipped') || el.classList.contains('flipping')) return;
+  el.classList.add('flipping');
+  setTimeout(()=>{ el.classList.add('flipped'); }, 225);
+  setTimeout(()=>{
+    el.classList.remove('flipping');
+    revealed++;
+    if(revealed===9) document.getElementById('btnAgain').classList.add('visible');
+  }, 450);
+}
+
+function revealAll() {
+  for(let i=0; i<9; i++){
+    const el = document.getElementById('c'+i);
+    if(el && !el.classList.contains('flipped') && !el.classList.contains('flipping'))
+      setTimeout(()=>flip(i), i*100);
+  }
+}
+</script>
+</body>
+</html>
